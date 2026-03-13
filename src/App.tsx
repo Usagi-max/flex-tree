@@ -140,6 +140,7 @@ const LogicNode: React.FC<{
             suppressContentEditableWarning
             onBlur={(e) => onUpdate(node.id, { content: e.currentTarget.innerText })}
             onMouseDown={(e) => e.stopPropagation()} 
+            data-placeholder={node.type === 'question' ? '質問を入力...' : '項目を入力...'}
         >
             {node.content}
         </div>
@@ -380,7 +381,7 @@ export default function App() {
     const newNode: NodeData = {
       id: Math.random().toString(36).substr(2, 9),
       parentId: actualParentId as string | null,
-      content: type === 'default' ? '新規項目' : (type === 'question' ? '新しい質問' : '新しい内容'),
+      content: '',
       type,
       position: { 
         x: parentNode.position.x + HORIZONTAL_SPACING, 
@@ -401,7 +402,7 @@ export default function App() {
     const childCount = nodes.filter(n => n.parentId === actualParentId).length;
     const qId = Math.random().toString(36).substr(2, 9);
     const qNode: NodeData = { 
-        id: qId, parentId: actualParentId as string | null, content: '新しい質問項目', type: 'question', 
+        id: qId, parentId: actualParentId as string | null, content: '', type: 'question', 
         position: { x: parentNode.position.x + HORIZONTAL_SPACING, y: parentNode.position.y + (childCount * VERTICAL_SPACING) }, 
         detailsVisible: true,
         intent: '質問の意図', expectedAnswer: '想定返答'
@@ -419,7 +420,7 @@ export default function App() {
     const newNode: NodeData = {
         id: newId,
         parentId,
-        content: '挿入された項目',
+        content: '',
         type: 'default',
         position: { x: parentNode.position.x + HORIZONTAL_SPACING / 2, y: parentNode.position.y },
         detailsVisible: false
@@ -442,7 +443,7 @@ export default function App() {
     const newNode: NodeData = {
         id: newId,
         parentId: oldParentId,
-        content: '前に挿入された項目',
+        content: '',
         type: 'default',
         position: { 
             x: childNode.position.x - HORIZONTAL_SPACING / 2, 
@@ -512,7 +513,7 @@ export default function App() {
     const newNode: NodeData = {
         id: newId,
         parentId,
-        content: '挿入された項目',
+        content: '',
         type: 'default',
         position: { 
             x: (parentNode.position.x + childNode.position.x) / 2, 

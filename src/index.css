@@ -128,6 +128,12 @@ h1, h2, h3, .font-heading {
   z-index: 10;
 }
 
+.node-last-touched {
+    z-index: 1000 !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+}
+
 .node-container:hover {
     border-color: var(--accent);
     box-shadow: 0 8px 30px rgba(0,0,0,0.4);
@@ -208,6 +214,13 @@ h1, h2, h3, .font-heading {
   color: var(--text-main);
   outline: none;
   min-height: 1.5em;
+}
+
+.node-content:empty:before {
+  content: attr(data-placeholder);
+  color: var(--text-muted);
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .canvas-wrapper {
