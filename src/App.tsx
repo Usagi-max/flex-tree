@@ -140,6 +140,7 @@ const LogicNode = React.memo<{
             suppressContentEditableWarning
             onBlur={(e) => onUpdate(node.id, { content: e.currentTarget.innerText })}
             onMouseDown={(e) => { e.stopPropagation(); onTouch(node.id); }} 
+            onFocus={() => onTouch(node.id)}
             data-placeholder={node.type === 'question' ? '質問を入力...' : '項目を入力...'}
         >
             {node.content}
@@ -155,6 +156,7 @@ const LogicNode = React.memo<{
                         suppressContentEditableWarning
                         onBlur={(e) => onUpdate(node.id, { intent: e.currentTarget.innerText })}
                         onMouseDown={(e) => { e.stopPropagation(); onTouch(node.id); }}
+                        onFocus={() => onTouch(node.id)}
                     >
                         {node.intent || '意図を入力...'}
                     </div>
@@ -167,6 +169,7 @@ const LogicNode = React.memo<{
                         suppressContentEditableWarning
                         onBlur={(e) => onUpdate(node.id, { expectedAnswer: e.currentTarget.innerText })}
                         onMouseDown={(e) => { e.stopPropagation(); onTouch(node.id); }}
+                        onFocus={() => onTouch(node.id)}
                     >
                         {node.expectedAnswer || '想定返答を入力...'}
                     </div>
@@ -404,7 +407,6 @@ export default function App() {
         x: parentNode.position.x + HORIZONTAL_SPACING, 
         y: parentNode.position.y + (childCount * VERTICAL_SPACING)
       },
-      detailsVisible: false,
       intent: type === 'question' ? '項目の意図' : undefined,
       expectedAnswer: type === 'question' ? '想定される答え' : undefined
     };
@@ -421,7 +423,6 @@ export default function App() {
     const qNode: NodeData = { 
         id: qId, parentId: actualParentId as string | null, content: '', type: 'question', 
         position: { x: parentNode.position.x + HORIZONTAL_SPACING, y: parentNode.position.y + (childCount * VERTICAL_SPACING) }, 
-        detailsVisible: true,
         intent: '質問の意図', expectedAnswer: '想定返答'
     };
     setNodes(prev => [...prev, qNode]);
@@ -439,8 +440,7 @@ export default function App() {
         parentId,
         content: '',
         type: 'default',
-        position: { x: parentNode.position.x + HORIZONTAL_SPACING / 2, y: parentNode.position.y },
-        detailsVisible: false
+        position: { x: parentNode.position.x + HORIZONTAL_SPACING / 2, y: parentNode.position.y }
     };
 
     setNodes(prev => {
@@ -465,8 +465,7 @@ export default function App() {
         position: { 
             x: childNode.position.x - HORIZONTAL_SPACING / 2, 
             y: childNode.position.y 
-        },
-        detailsVisible: false
+        }
     };
 
     setNodes(prev => prev.map(n => n.id === childId ? { ...n, parentId: newId } : n).concat(newNode));
@@ -535,8 +534,7 @@ export default function App() {
         position: { 
             x: (parentNode.position.x + childNode.position.x) / 2, 
             y: (parentNode.position.y + childNode.position.y) / 2 
-        },
-        detailsVisible: false
+        }
     };
 
     setNodes(prev => prev.map(n => n.id === childId ? { ...n, parentId: newId } : n).concat(newNode));
