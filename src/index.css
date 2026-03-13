@@ -122,7 +122,6 @@ h1, h2, h3, .font-heading {
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-  transition: transform 0.1s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   overflow: hidden;
   user-select: none;
   z-index: 10;
@@ -131,10 +130,11 @@ h1, h2, h3, .font-heading {
 .node-last-touched {
     z-index: 1000 !important;
     border-color: var(--accent) !important;
-    box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(212, 175, 55, 0.3);
 }
 
 .node-container:hover {
+    z-index: 2000 !important;
     border-color: var(--accent);
     box-shadow: 0 8px 30px rgba(0,0,0,0.4);
 }

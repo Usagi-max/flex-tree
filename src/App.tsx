@@ -12,7 +12,6 @@ export interface NodeData {
   content: string;
   type: NodeType;
   position: { x: number; y: number };
-  detailsVisible?: boolean; 
   intent?: string;
   expectedAnswer?: string;
 }
@@ -21,8 +20,9 @@ const NODE_WIDTH = 320;
 const HORIZONTAL_SPACING = 420;
 const VERTICAL_SPACING = 150;
 
-const LogicNode: React.FC<{
+const LogicNode = React.memo<{
   node: NodeData;
+  isExpanded: boolean;
   onUpdate: (id: string, updates: Partial<NodeData>) => void;
   onDelete: (id: string) => void;
   onAddChild: (parentId: string, type?: NodeType) => void;
@@ -35,7 +35,7 @@ const LogicNode: React.FC<{
   onMoveSubtree: (id: string, direction: 'up' | 'down') => void;
   onTouch: (id: string) => void;
   isLastTouched: boolean;
-}> = ({ node, onUpdate, onDelete, onAddChild, onDragStart, onToggleDetails, onChangeType, onStartRelink, onInsertChild, onInsertParent, onMoveSubtree, onTouch, isLastTouched }) => {
+}>(({ node, isExpanded, onUpdate, onDelete, onAddChild, onDragStart, onToggleDetails, onChangeType, onStartRelink, onInsertChild, onInsertParent, onMoveSubtree, onTouch, isLastTouched }) => {
   const contentRef = useRef<HTMLDivElement>(null);
 
   const getIcon = () => {
@@ -96,38 +96,38 @@ const LogicNode: React.FC<{
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
              {node.type === 'question' && (
                  <button 
-                    onClick={() => onToggleDetails?.(node.id)} 
+                    onClick={(e) => { e.stopPropagation(); onToggleDetails?.(node.id); }} 
                     className="glass-panel"
                     style={{ 
-                        background: node.detailsVisible ? 'var(--accent)' : 'var(--bg-panel)', 
+                        background: isExpanded ? 'var(--accent)' : 'var(--bg-panel)', 
                         border: 'none', 
                         cursor: 'pointer', 
                         padding: '2px 6px',
                         fontSize: '10px',
                         borderRadius: '4px',
                         fontWeight: 'bold',
-                        color: node.detailsVisible ? 'var(--primary)' : 'var(--text-muted)'
+                        color: isExpanded ? 'var(--primary)' : 'var(--text-muted)'
                     }}
                  >
-                    {node.detailsVisible ? '詳細を隠す' : '詳細を表示'}
+                    {isExpanded ? '詳細を隠す' : '詳細を表示'}
                  </button>
              )}
-             <button onClick={() => onMoveSubtree(node.id, 'up')} title="上に移動" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+             <button onClick={(e) => { e.stopPropagation(); onMoveSubtree(node.id, 'up'); }} title="上に移動" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
                 <ArrowUp size={14} />
              </button>
-             <button onClick={() => onMoveSubtree(node.id, 'down')} title="下に移動" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+             <button onClick={(e) => { e.stopPropagation(); onMoveSubtree(node.id, 'down'); }} title="下に移動" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
                 <ArrowDown size={14} />
              </button>
-             <button onClick={() => onInsertParent(node.id)} title="前に項目を挿入" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', display: 'flex', alignItems: 'center' }}>
+             <button onClick={(e) => { e.stopPropagation(); onInsertParent(node.id); }} title="前に項目を挿入" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', display: 'flex', alignItems: 'center' }}>
                 <ChevronLeft size={14} />
              </button>
-             <button onClick={() => onInsertChild(node.id)} title="後に項目を挿入" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', display: 'flex', alignItems: 'center' }}>
+             <button onClick={(e) => { e.stopPropagation(); onInsertChild(node.id); }} title="後に項目を挿入" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', display: 'flex', alignItems: 'center' }}>
                 <ChevronRight size={14} />
              </button>
-             <button onClick={() => onAddChild(node.id)} title="子項目を追加" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+             <button onClick={(e) => { e.stopPropagation(); onAddChild(node.id); }} title="子項目を追加" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
                 <Plus size={14} />
              </button>
-             <button onClick={() => onDelete(node.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e74c3c', display: 'flex', alignItems: 'center' }}>
+             <button onClick={(e) => { e.stopPropagation(); onDelete(node.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e74c3c', display: 'flex', alignItems: 'center' }}>
                 <Trash2 size={14} />
              </button>
         </div>
@@ -145,7 +145,7 @@ const LogicNode: React.FC<{
             {node.content}
         </div>
 
-        {node.type === 'question' && node.detailsVisible && (
+        {node.type === 'question' && isExpanded && (
             <div className="node-details-container" onMouseDown={(e) => e.stopPropagation()}>
                 <div className="detail-item">
                     <div className="detail-label"><Target size={10} /> 意図</div>
@@ -174,20 +174,13 @@ const LogicNode: React.FC<{
       </div>
     </div>
   );
-};
+});
 
 export default function App() {
   const [nodes, setNodes] = useState<NodeData[]>([
-    { id: 'root', parentId: null, content: 'メインテーマ', type: 'default', position: { x: 100, y: 100 }, detailsVisible: false }
-  ]);
-  const [history, setHistory] = useState<NodeData[][]>([]);
-  const [redoStack, setRedoStack] = useState<NodeData[][]>([]);
-  const [fileList, setFileList] = useState<string[]>([]);
-  const [lastTouchedNodeId, setLastTouchedNodeId] = useState<string>('root');
-  const [user, setUser] = useState<User | null>(null);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(new Set());
 
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -331,18 +324,26 @@ export default function App() {
   }, [pushToHistory, nodes, updateNode]);
 
   const toggleDetails = useCallback((id: string) => {
-    setNodes(prev => prev.map(n => n.id === id ? { ...n, detailsVisible: !n.detailsVisible } : n));
+    setExpandedNodeIds(prev => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+    });
   }, []);
 
-  const toggleAllDetails = (visible: boolean) => {
-    setNodes(prev => prev.map(n => n.type === 'question' ? { ...n, detailsVisible: visible } : n));
-  };
+  const toggleAllDetails = useCallback((visible: boolean) => {
+    if (visible) {
+        setExpandedNodeIds(new Set(nodes.filter(n => n.type === 'question').map(n => n.id)));
+    } else {
+        setExpandedNodeIds(new Set());
+    }
+  }, [nodes]);
 
   const changeNodeType = useCallback((id: string, type: NodeType) => {
     setNodes(prev => prev.map(n => n.id === id ? { 
         ...n, 
         type, 
-        detailsVisible: type === 'question' ? n.detailsVisible : false,
         intent: type === 'question' ? (n.intent || '意図を入力...') : n.intent,
         expectedAnswer: type === 'question' ? (n.expectedAnswer || '想定返答を入力...') : n.expectedAnswer
     } : n));
@@ -358,14 +359,20 @@ export default function App() {
   const deleteNode = useCallback((id: string) => {
     if (id === 'root') return;
     pushToHistory(nodes);
+    
     setNodes(prev => {
-        const toDeleteIds = new Set<string>();
-        const findChildren = (pid: string) => {
-            toDeleteIds.add(pid);
-            prev.filter(n => n.parentId === pid).forEach(c => findChildren(c.id));
-        };
-        findChildren(id);
-        return prev.filter(n => !toDeleteIds.has(n.id));
+        const nodeToDelete = prev.find(n => n.id === id);
+        if (!nodeToDelete) return prev;
+
+        const deletedParentId = nodeToDelete.parentId;
+
+        // Update children to point to the grandparent
+        const updated = prev.map(n => 
+            n.parentId === id ? { ...n, parentId: deletedParentId } : n
+        );
+
+        // Remove the target node
+        return updated.filter(n => n.id !== id);
     });
   }, [nodes, pushToHistory]);
 
@@ -541,10 +548,10 @@ export default function App() {
 
   // --- CSV Persistence ---
   const generateCSV = (nodesToSave: NodeData[]): string => {
-    const headers = ['id', 'parentId', 'type', 'content', 'x', 'y', 'detailsVisible', 'intent', 'expectedAnswer'];
+    const headers = ['id', 'parentId', 'type', 'content', 'x', 'y', 'intent', 'expectedAnswer'];
     const rows = nodesToSave.map(n => [
         n.id, n.parentId || '', n.type, `"${n.content.replace(/"/g, '""')}"`, 
-        n.position.x, n.position.y, n.detailsVisible ? '1' : '0', 
+        n.position.x, n.position.y,
         `"${(n.intent || '').replace(/"/g, '""')}"`, 
         `"${(n.expectedAnswer || '').replace(/"/g, '""')}"`
     ]);
@@ -583,10 +590,10 @@ export default function App() {
   };
 
   const downloadCSV = () => {
-    const headers = ['id', 'parentId', 'type', 'content', 'x', 'y', 'detailsVisible', 'intent', 'expectedAnswer'];
+    const headers = ['id', 'parentId', 'type', 'content', 'x', 'y', 'intent', 'expectedAnswer'];
     const rows = nodes.map(n => [
       n.id, n.parentId || '', n.type, `"${n.content.replace(/"/g, '""')}"`, 
-      n.position.x, n.position.y, n.detailsVisible ? '1' : '0', 
+      n.position.x, n.position.y,
       `"${(n.intent || '').replace(/"/g, '""')}"`, 
       `"${(n.expectedAnswer || '').replace(/"/g, '""')}"`
     ]);
@@ -632,9 +639,8 @@ export default function App() {
             type: (parts[2] || 'default').trim() as NodeType,
             content: parts[3] || '',
             position: { x: parseInt(parts[4] || '100'), y: parseInt(parts[5] || '100') },
-            detailsVisible: parts[6] === '1',
-            intent: parts[7] || '',
-            expectedAnswer: parts[8] || ''
+            intent: parts[6] || '',
+            expectedAnswer: parts[7] || ''
         };
     });
   };
@@ -673,8 +679,8 @@ export default function App() {
         
         const importedNodes = parseCSVContent(text);
         if (importedNodes.length > 0) {
-            const hiddenNodes = importedNodes.map(n => n.type === 'question' ? { ...n, detailsVisible: false } : n);
-            const alignedNodes = autoAlign(hiddenNodes);
+            setExpandedNodeIds(new Set()); // Reset UI state
+            const alignedNodes = autoAlign(importedNodes);
             setNodes(alignedNodes);
             setCurrentFilename(filename);
             resetView(alignedNodes);
@@ -716,7 +722,7 @@ export default function App() {
         const contentLines = Math.ceil((node.content.length || 1) / 35);
         let h = Math.max(BASE_HEIGHT, contentLines * 24 + 60);
         
-        if (node.type === 'question' && node.detailsVisible) {
+        if (node.type === 'question' && expandedNodeIds.has(node.id)) {
             const intentLines = Math.ceil((node.intent?.length || 1) / 40);
             const answerLines = Math.ceil((node.expectedAnswer?.length || 1) / 40);
             h += Math.max(DETAILS_HEIGHT, (intentLines + answerLines) * 20 + 80);
@@ -1041,6 +1047,7 @@ export default function App() {
           <LogicNode 
             key={node.id} 
             node={node} 
+            isExpanded={expandedNodeIds.has(node.id)}
             isLastTouched={node.id === lastTouchedNodeId}
             onTouch={setLastTouchedNodeId}
             onUpdate={updateNodeSubstantive} 
