@@ -139,7 +139,7 @@ const LogicNode = React.memo<{
             contentEditable
             suppressContentEditableWarning
             onBlur={(e) => onUpdate(node.id, { content: e.currentTarget.innerText })}
-            onMouseDown={(e) => e.stopPropagation()} 
+            onMouseDown={(e) => { e.stopPropagation(); onTouch(node.id); }} 
             data-placeholder={node.type === 'question' ? '質問を入力...' : '項目を入力...'}
         >
             {node.content}
@@ -154,6 +154,7 @@ const LogicNode = React.memo<{
                         contentEditable 
                         suppressContentEditableWarning
                         onBlur={(e) => onUpdate(node.id, { intent: e.currentTarget.innerText })}
+                        onMouseDown={(e) => { e.stopPropagation(); onTouch(node.id); }}
                     >
                         {node.intent || '意図を入力...'}
                     </div>
@@ -165,6 +166,7 @@ const LogicNode = React.memo<{
                         contentEditable 
                         suppressContentEditableWarning
                         onBlur={(e) => onUpdate(node.id, { expectedAnswer: e.currentTarget.innerText })}
+                        onMouseDown={(e) => { e.stopPropagation(); onTouch(node.id); }}
                     >
                         {node.expectedAnswer || '想定返答を入力...'}
                     </div>
@@ -178,6 +180,14 @@ const LogicNode = React.memo<{
 
 export default function App() {
   const [nodes, setNodes] = useState<NodeData[]>([
+    { id: 'root', parentId: null, content: 'メインテーマ', type: 'default', position: { x: 100, y: 100 } }
+  ]);
+  const [history, setHistory] = useState<NodeData[][]>([]);
+  const [redoStack, setRedoStack] = useState<NodeData[][]>([]);
+  const [fileList, setFileList] = useState<string[]>([]);
+  const [lastTouchedNodeId, setLastTouchedNodeId] = useState<string>('root');
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(new Set());
