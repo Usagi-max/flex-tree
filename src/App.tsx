@@ -16,6 +16,12 @@ export interface NodeData {
   expectedAnswer?: string;
 }
 
+export interface AdviceData {
+    nodeId: string;
+    content: string;
+    resolved: boolean;
+}
+
 const NODE_WIDTH = 320;
 const HORIZONTAL_SPACING = 420;
 const VERTICAL_SPACING = 150;
@@ -35,7 +41,9 @@ const LogicNode = React.memo<{
   onMoveSubtree: (id: string, direction: 'up' | 'down') => void;
   onTouch: (id: string) => void;
   isLastTouched: boolean;
-}>(({ node, isExpanded, onUpdate, onDelete, onAddChild, onDragStart, onToggleDetails, onChangeType, onStartRelink, onInsertChild, onInsertParent, onMoveSubtree, onTouch, isLastTouched }) => {
+  advice?: AdviceData;
+  onResolveAdvice: (nodeId: string) => void;
+}>(({ node, isExpanded, onUpdate, onDelete, onAddChild, onDragStart, onToggleDetails, onChangeType, onStartRelink, onInsertChild, onInsertParent, onMoveSubtree, onTouch, isLastTouched, advice, onResolveAdvice }) => {
   const contentRef = useRef<HTMLDivElement>(null);
 
   const getIcon = () => {
@@ -62,6 +70,14 @@ const LogicNode = React.memo<{
       onMouseUp={() => window.dispatchEvent(new CustomEvent('nodeMouseUp', { detail: node.id }))}
       onMouseDown={(e) => { e.stopPropagation(); onTouch(node.id); }}
     >
+      {advice && !advice.resolved && (
+        <div className="advice-bubble">
+           <div className="advice-content">{advice.content}</div>
+           <button className="btn-resolve" onClick={(e) => { e.stopPropagation(); onResolveAdvice(node.id); }}>
+               解決済み
+           </button>
+        </div>
+      )}
       <div className="relink-handle" onMouseDown={(e) => onStartRelink(node.id, e)}>
         <LinkIcon size={10} />
       </div>
@@ -194,6 +210,7 @@ export default function App() {
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(new Set());
+  const [adviceList, setAdviceList] = useState<AdviceData[]>([]);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -207,6 +224,7 @@ export default function App() {
   const [isPanning, setIsPanning] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const adviceInputRef = useRef<HTMLInputElement>(null);
   const [currentFilename, setCurrentFilename] = useState<string>('logic_tree.csv');
 
   const pushToHistory = useCallback((currentNodes: NodeData[]) => {
@@ -360,6 +378,12 @@ export default function App() {
         intent: type === 'question' ? (n.intent || '意図を入力...') : n.intent,
         expectedAnswer: type === 'question' ? (n.expectedAnswer || '想定返答を入力...') : n.expectedAnswer
     } : n));
+  }, []);
+
+  const toggleAdviceResolved = useCallback((nodeId: string) => {
+    setAdviceList(prev => prev.map(adv => 
+      adv.nodeId === nodeId ? { ...adv, resolved: !adv.resolved } : adv
+    ));
   }, []);
 
   const isNodeVisible = useCallback((nodeId: string): boolean => {
@@ -667,6 +691,36 @@ export default function App() {
         }
     };
     reader.readAsText(file);
+  };
+
+  const importAdviceCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        const text = event.target?.result as string;
+        const lines = text.split('\n').filter(l => l.trim().length > 0);
+        if (lines.length < 2) return;
+        
+        const importedAdvice: AdviceData[] = lines.slice(1).map(line => {
+            // Very simple CSV parse for ID and Content, assuming no complex quotes in ID
+            const firstComma = line.indexOf(',');
+            if (firstComma === -1) return null;
+            const nodeId = line.substring(0, firstComma).trim();
+            // Remove surrounding quotes if they exist for the content
+            let content = line.substring(firstComma + 1).trim();
+            if (content.startsWith('"') && content.endsWith('"')) {
+                content = content.substring(1, content.length - 1).replace(/""/g, '"');
+            }
+            return { nodeId, content, resolved: false };
+        }).filter(Boolean) as AdviceData[];
+
+        setAdviceList(importedAdvice);
+        showToast('アドバイスを読み込みました');
+    };
+    reader.readAsText(file);
+    // Reset file input so the same file can be loaded again if needed
+    if (adviceInputRef.current) adviceInputRef.current.value = '';
   };
 
   const loadFromLibrary = async (filename: string) => {
@@ -988,8 +1042,12 @@ export default function App() {
           <button className="btn-premium secondary" style={{ padding: '8px' }} onClick={() => fileInputRef.current?.click()} title="外部読込">
               <Upload size={18} />
           </button>
+          <button className="btn-premium info" style={{ padding: '8px 12px' }} onClick={() => adviceInputRef.current?.click()} title="アドバイス読込">
+              アドバイス
+          </button>
         </div>
         <input type="file" ref={fileInputRef} className="file-input-hidden" accept=".csv" onChange={importCSV} />
+        <input type="file" ref={adviceInputRef} className="file-input-hidden" accept=".csv" onChange={importAdviceCSV} />
       </div>
 
 
@@ -1055,6 +1113,7 @@ export default function App() {
           <LogicNode 
             key={node.id} 
             node={node} 
+            advice={adviceList.find(a => a.nodeId === node.id)}
             isExpanded={expandedNodeIds.has(node.id)}
             isLastTouched={node.id === lastTouchedNodeId}
             onTouch={setLastTouchedNodeId}
@@ -1068,6 +1127,7 @@ export default function App() {
             onInsertChild={insertBetween}
             onInsertParent={insertParent}
             onMoveSubtree={moveSubtree}
+            onResolveAdvice={toggleAdviceResolved}
           />
         ))}
       </div>
