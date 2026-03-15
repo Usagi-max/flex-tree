@@ -707,11 +707,14 @@ export default function App() {
             const firstComma = line.indexOf(',');
             if (firstComma === -1) return null;
             const nodeId = line.substring(0, firstComma).trim();
-            // Remove surrounding quotes if they exist for the content
             let content = line.substring(firstComma + 1).trim();
+            // Ensure we remove BOTH surrounding quotes if they exist
             if (content.startsWith('"') && content.endsWith('"')) {
-                content = content.substring(1, content.length - 1).replace(/""/g, '"');
+                content = content.substring(1, content.length - 1);
             }
+            // Replace escaped quotes
+            content = content.replace(/""/g, '"');
+            
             return { nodeId, content, resolved: false };
         }).filter(Boolean) as AdviceData[];
 

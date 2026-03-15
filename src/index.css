@@ -651,8 +651,8 @@ h1, h2, h3, .font-heading {
 .btn-resolve {
   align-self: flex-end;
   background: #C3A032;
-  color: white;
-  border: 1px solid white;
+  color: #fff;
+  border: 1px solid #fff;
   border-radius: 4px;
   padding: 4px 10px;
   font-size: 11px;
@@ -663,7 +663,7 @@ h1, h2, h3, .font-heading {
 }
 
 .btn-resolve:hover {
-  background: white;
+  background: #fff;
   color: #C3A032;
   border: 1px solid #C3A032;
   transform: translateY(-1px);
