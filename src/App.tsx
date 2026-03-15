@@ -14,6 +14,7 @@ export interface NodeData {
   position: { x: number; y: number };
   intent?: string;
   expectedAnswer?: string;
+  detail?: string;
 }
 
 export interface AdviceData {
@@ -823,10 +824,16 @@ export default function App() {
   };
 
   const copyAIPrompt = async () => {
+      const rootNode = nodes.find(n => n.id === 'root');
+      const premise = rootNode?.detail ? `\n【ツリーの前提条件（root項目の詳細より）】\n${rootNode.detail}\n` : '';
       const treeText = nodes.map(n => `- ID: ${n.id} | テキスト: ${n.content}`).join('\n');
       const prompt = `以下のロジックツリーのデータ構造を確認し、各項目に対するレビューコメントを作成してください。
 出力形式は以下の指定に厳密に従い、CSV形式のみで出力してください。Markdownのコードブロック（\`\`\`csv）は使用しないでください。
 
+【レビュー方針】
+- ひたすら論理的・客観的な視点でレビューを行ってください。
+- ツリー全体の構造から変えた方が良い場合は、その旨を指摘するアドバイス（例: 「この項目は〇〇のツリーの下に移動すべき」「抜け漏れがあるため〇〇という分岐を追加すべき」等）も積極的に含めてください。
+${premise}
 【出力ルール】
 1. 1行目は必ずヘッダーとして \`id,content,resolved\` としてください。
 2. 2行目以降に、改善が必要な項目のデータを出力してください。
