@@ -70,11 +70,11 @@ const LogicNode = React.memo<{
       onMouseUp={() => window.dispatchEvent(new CustomEvent('nodeMouseUp', { detail: node.id }))}
       onMouseDown={(e) => { e.stopPropagation(); onTouch(node.id); }}
     >
-      {advice && !advice.resolved && (
-        <div className="advice-bubble">
+      {advice && (
+        <div className={`advice-bubble ${advice.resolved ? 'resolved' : ''}`}>
            <div className="advice-content">{advice.content}</div>
            <button className="btn-resolve" onClick={(e) => { e.stopPropagation(); onResolveAdvice(node.id); }}>
-               解決済み
+               {advice.resolved ? '未解決に戻す' : '解決済み'}
            </button>
         </div>
       )}
@@ -211,6 +211,8 @@ export default function App() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(new Set());
   const [adviceList, setAdviceList] = useState<AdviceData[]>([]);
+  const [adviceFilter, setAdviceFilter] = useState<'all' | 'unresolved' | 'resolved'>('all');
+  const [currentAdviceIndex, setCurrentAdviceIndex] = useState(0);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -728,34 +730,95 @@ export default function App() {
         if (lines.length < 2) return;
         
         const importedAdvice: AdviceData[] = lines.slice(1).map(line => {
-            const firstComma = line.indexOf(',');
-            if (firstComma === -1) return null;
-            const nodeId = line.substring(0, firstComma).trim();
-            const contentRaw = line.substring(firstComma + 1).trim();
+            const parts: string[] = [];
+            let currentPart = '';
+            let isQuoted = false;
             
-            return { 
-                nodeId, 
-                content: contentRaw, // We don't need to strip quotes here, our parser above handled the state, we just need to ensure the final output is clean if it wrapped
-                resolved: false 
-            };
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') {
+                    if (isQuoted && line[i+1] === '"') {
+                        currentPart += '"';
+                        i++;
+                    } else {
+                        isQuoted = !isQuoted;
+                    }
+                } else if (char === ',' && !isQuoted) {
+                    parts.push(currentPart);
+                    currentPart = '';
+                } else {
+                    currentPart += char;
+                }
+            }
+            parts.push(currentPart);
+
+            const nodeId = parts[0]?.trim() || '';
+            const content = parts[1] || '';
+            const resolvedRaw = parts[2]?.trim().toLowerCase();
+            const resolved = resolvedRaw === 'true';
+
+            if (!nodeId) return null;
+            return { nodeId, content, resolved };
         }).filter(Boolean) as AdviceData[];
 
-        // To handle the content cleanup from the raw split:
-        const cleanAdvice = importedAdvice.map(adv => {
-            let cleaned = adv.content;
-            if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
-                cleaned = cleaned.substring(1, cleaned.length - 1);
-            }
-            cleaned = cleaned.replace(/""/g, '"');
-            return { ...adv, content: cleaned };
-        });
-
-        setAdviceList(cleanAdvice);
+        setAdviceList(importedAdvice);
         showToast('アドバイスを読み込みました');
     };
     reader.readAsText(file);
     // Reset file input so the same file can be loaded again if needed
     if (adviceInputRef.current) adviceInputRef.current.value = '';
+  };
+
+  const exportAdviceCSV = () => {
+      if (adviceList.length === 0) return;
+      const headers = ['id', 'content', 'resolved'];
+      const rows = adviceList.map(a => {
+          let content = a.content;
+          if (content.includes(',') || content.includes('\n') || content.includes('"')) {
+              content = `"${content.replace(/"/g, '""')}"`;
+          }
+          return [a.nodeId, content, a.resolved].join(',');
+      });
+      const csvContent = [headers.join(','), ...rows].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'advice_export.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('アドバイスを保存しました');
+  };
+
+  const goToNextAdvice = () => {
+      const visibleAdvice = adviceList.filter(a => {
+          if (adviceFilter === 'all') return true;
+          if (adviceFilter === 'resolved') return a.resolved;
+          return !a.resolved;
+      });
+
+      if (visibleAdvice.length === 0) {
+          showToast('該当するアドバイスがありません', 'error');
+          return;
+      }
+
+      const nextIndex = (currentAdviceIndex + 1) % visibleAdvice.length;
+      setCurrentAdviceIndex(nextIndex);
+      
+      const targetAdvice = visibleAdvice[nextIndex];
+      const targetNode = nodes.find(n => n.id === targetAdvice.nodeId);
+      
+      if (targetNode) {
+          const screenW = window.innerWidth;
+          const screenH = window.innerHeight;
+          setViewState(v => ({
+              ...v,
+              x: (screenW / 2) - (targetNode.position.x * v.zoom),
+              y: (screenH / 2) - (targetNode.position.y * v.zoom)
+          }));
+          setLastTouchedNodeId(targetNode.id);
+      }
   };
 
   const loadFromLibrary = async (filename: string) => {
@@ -1077,8 +1140,27 @@ export default function App() {
           <button className="btn-premium secondary" style={{ padding: '8px' }} onClick={() => fileInputRef.current?.click()} title="外部読込">
               <Upload size={18} />
           </button>
+          
+          <div className="toolbar-separator"></div>
+
           <button className="btn-premium info" style={{ padding: '8px 12px' }} onClick={() => adviceInputRef.current?.click()} title="アドバイス読込">
-              アドバイス
+              アドバイス読込
+          </button>
+          <button className="btn-premium success" style={{ padding: '8px 12px' }} onClick={exportAdviceCSV} title="アドバイス保存">
+              アドバイス保存
+          </button>
+          <select 
+              value={adviceFilter} 
+              onChange={(e) => setAdviceFilter(e.target.value as any)}
+              className="select-premium"
+              style={{ width: '100px' }}
+          >
+              <option value="all">すべて表示</option>
+              <option value="unresolved">未解決のみ</option>
+              <option value="resolved">解決済のみ</option>
+          </select>
+          <button className="btn-premium secondary" style={{ padding: '8px 12px' }} onClick={goToNextAdvice}>
+              次のアドバイス
           </button>
         </div>
         <input type="file" ref={fileInputRef} className="file-input-hidden" accept=".csv" onChange={importCSV} />
@@ -1144,27 +1226,37 @@ export default function App() {
             );
           })}
         </svg>
-        {visibleNodes.map(node => (
-          <LogicNode 
-            key={node.id} 
-            node={node} 
-            advice={adviceList.find(a => a.nodeId === node.id)}
-            isExpanded={expandedNodeIds.has(node.id)}
-            isLastTouched={node.id === lastTouchedNodeId}
-            onTouch={setLastTouchedNodeId}
-            onUpdate={updateNodeSubstantive} 
-            onDelete={deleteNode}
-            onAddChild={addChild}
-            onDragStart={onDragStart}
-            onToggleDetails={toggleDetails}
-            onChangeType={changeNodeType}
-            onStartRelink={onStartRelink}
-            onInsertChild={insertBetween}
-            onInsertParent={insertParent}
-            onMoveSubtree={moveSubtree}
-            onResolveAdvice={toggleAdviceResolved}
-          />
-        ))}
+        {visibleNodes.map(node => {
+          const isExpanded = expandedNodeIds.has(node.id);
+          const nodeAdvice = adviceList.find(a => 
+              a.nodeId === node.id && 
+              (adviceFilter === 'all' || 
+              (adviceFilter === 'resolved' && a.resolved) || 
+              (adviceFilter === 'unresolved' && !a.resolved))
+          );
+
+          return (
+            <LogicNode 
+              key={node.id} 
+              node={node} 
+              advice={nodeAdvice}
+              isExpanded={isExpanded}
+              isLastTouched={node.id === lastTouchedNodeId}
+              onTouch={setLastTouchedNodeId}
+              onUpdate={updateNodeSubstantive} 
+              onDelete={deleteNode}
+              onAddChild={addChild}
+              onDragStart={onDragStart}
+              onToggleDetails={toggleDetails}
+              onChangeType={changeNodeType}
+              onStartRelink={onStartRelink}
+              onInsertChild={insertBetween}
+              onInsertParent={insertParent}
+              onMoveSubtree={moveSubtree}
+              onResolveAdvice={toggleAdviceResolved}
+            />
+          );
+        })}
       </div>
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
