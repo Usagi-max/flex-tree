@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Plus, Trash2, HelpCircle, MessageCircle, Target, Download, Upload, Layout, Link as LinkIcon, Home, Undo2, Redo2, ChevronRight, ChevronLeft, ArrowUp, ArrowDown, LogIn, LogOut, User as UserIcon, Menu } from 'lucide-react';
+import { Plus, Trash2, HelpCircle, MessageCircle, Target, Download, Upload, Layout, Link as LinkIcon, Home, Undo2, Redo2, ChevronRight, ChevronLeft, ArrowUp, ArrowDown, LogIn, LogOut, User as UserIcon, Menu, Copy } from 'lucide-react';
 import { supabase } from './lib/supabaseClient';
 import type { User } from '@supabase/supabase-js';
 import { AuthModal } from './components/AuthModal';
@@ -822,6 +822,30 @@ export default function App() {
       }
   };
 
+  const copyAIPrompt = async () => {
+      const treeText = nodes.map(n => `- ID: ${n.id} | テキスト: ${n.content}`).join('\n');
+      const prompt = `以下のロジックツリーのデータ構造を確認し、各項目に対するレビューコメント（アドバイス）を作成してください。
+出力形式は以下の指定に厳密に従い、CSV形式のみで出力してください。Markdownのコードブロック（\`\`\`csv）は使用しないでください。
+
+【出力ルール】
+1. 1行目は必ずヘッダーとして \`id,content,resolved\` としてください。
+2. 2行目以降に、コメントが必要な項目のデータを出力してください。
+3. "id" には対象項目のIDを入力してください。
+4. "content" には具体的な内容を入力してください。文章内にカンマ(,)や改行が含まれる場合は、必ずフィールド全体をダブルクォーテーション("")で囲んでください。
+5. "resolved" は全て \`false\` としてください。
+
+【対象ツリーデータ】
+${treeText}`;
+
+      try {
+          await navigator.clipboard.writeText(prompt);
+          showToast('AI用プロンプトをコピーしました！');
+      } catch (err) {
+          console.error('Failed to copy text: ', err);
+          showToast('コピーに失敗しました', 'error');
+      }
+  };
+
   const loadFromLibrary = async (filename: string) => {
     if (!filename) return;
     try {
@@ -1153,6 +1177,9 @@ export default function App() {
           </button>
           <button className="btn-premium success" style={{ padding: '8px 12px' }} onClick={exportAdviceCSV} title="コメント保存">
               コメント保存
+          </button>
+          <button className="btn-premium accent" style={{ padding: '8px 12px' }} onClick={copyAIPrompt} title="AI用プロンプトをコピー">
+              <Copy size={14} /> AIプロンプト
           </button>
           <select 
               value={adviceFilter} 
