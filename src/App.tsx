@@ -763,7 +763,7 @@ export default function App() {
         }).filter(Boolean) as AdviceData[];
 
         setAdviceList(importedAdvice);
-        showToast('アドバイスを読み込みました');
+        showToast('コメントを読み込みました');
     };
     reader.readAsText(file);
     // Reset file input so the same file can be loaded again if needed
@@ -789,7 +789,7 @@ export default function App() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      showToast('アドバイスを保存しました');
+      showToast('コメントを保存しました');
   };
 
   const goToNextAdvice = () => {
@@ -800,7 +800,7 @@ export default function App() {
       });
 
       if (visibleAdvice.length === 0) {
-          showToast('該当するアドバイスがありません', 'error');
+          showToast('該当するコメントがありません', 'error');
           return;
       }
 
@@ -1148,11 +1148,11 @@ export default function App() {
           
           <div className="toolbar-separator"></div>
 
-          <button className="btn-premium info" style={{ padding: '8px 12px' }} onClick={() => adviceInputRef.current?.click()} title="アドバイス読込">
-              アドバイス読込
+          <button className="btn-premium info" style={{ padding: '8px 12px' }} onClick={() => adviceInputRef.current?.click()} title="コメント読込">
+              コメント読込
           </button>
-          <button className="btn-premium success" style={{ padding: '8px 12px' }} onClick={exportAdviceCSV} title="アドバイス保存">
-              アドバイス保存
+          <button className="btn-premium success" style={{ padding: '8px 12px' }} onClick={exportAdviceCSV} title="コメント保存">
+              コメント保存
           </button>
           <select 
               value={adviceFilter} 
@@ -1165,7 +1165,7 @@ export default function App() {
               <option value="resolved">解決済のみ</option>
           </select>
           <button className="btn-premium secondary" style={{ padding: '8px 12px' }} onClick={goToNextAdvice}>
-              次のアドバイス
+              次のコメント
           </button>
         </div>
         <input type="file" ref={fileInputRef} className="file-input-hidden" accept=".csv" onChange={importCSV} />
