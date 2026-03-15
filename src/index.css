@@ -308,6 +308,9 @@ h1, h2, h3, .font-heading {
   left: 50%;
   transform: translateX(-50%);
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 98vw;
   align-items: center;
   gap: 4px;
   z-index: 100;

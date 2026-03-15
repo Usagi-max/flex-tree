@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Plus, Trash2, HelpCircle, MessageCircle, Target, Download, Upload, Layout, Link as LinkIcon, Home, Undo2, Redo2, ChevronRight, ChevronLeft, ArrowUp, ArrowDown, LogIn, LogOut, User as UserIcon } from 'lucide-react';
+import { Plus, Trash2, HelpCircle, MessageCircle, Target, Download, Upload, Layout, Link as LinkIcon, Home, Undo2, Redo2, ChevronRight, ChevronLeft, ArrowUp, ArrowDown, LogIn, LogOut, User as UserIcon, Menu } from 'lucide-react';
 import { supabase } from './lib/supabaseClient';
 import type { User } from '@supabase/supabase-js';
 import { AuthModal } from './components/AuthModal';
@@ -213,6 +213,7 @@ export default function App() {
   const [adviceList, setAdviceList] = useState<AdviceData[]>([]);
   const [adviceFilter, setAdviceFilter] = useState<'all' | 'unresolved' | 'resolved'>('all');
   const [currentAdviceIndex, setCurrentAdviceIndex] = useState(0);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -1051,7 +1052,11 @@ export default function App() {
             backgroundSize: `${40 * viewState.zoom}px ${40 * viewState.zoom}px`
         }}
     >
-      <div className="toolbar">
+      <div className={`toolbar ${isMenuOpen ? 'menu-open' : ''}`}>
+        <button className="btn-premium secondary mobile-menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+           <Menu size={18} />
+        </button>
+        
         {/* Group 1: Identity & Navigation */}
         <div className="toolbar-group">
           {user ? (
