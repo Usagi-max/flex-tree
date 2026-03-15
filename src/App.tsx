@@ -699,26 +699,58 @@ export default function App() {
     const reader = new FileReader();
     reader.onload = (event) => {
         const text = event.target?.result as string;
-        const lines = text.split('\n').filter(l => l.trim().length > 0);
+        
+        // Robust CSV parse respecting quotes and inner newlines
+        const lines: string[] = [];
+        let currentLine = '';
+        let inQuote = false;
+        
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            
+            if (char === '"') {
+                if (inQuote && text[i+1] === '"') {
+                    currentLine += '"';
+                    i++; // skip next quote
+                } else {
+                    inQuote = !inQuote;
+                }
+            } else if ((char === '\n' || char === '\r') && !inQuote) {
+                if (char === '\r' && text[i+1] === '\n') i++; // Skip \n of \r\n
+                if (currentLine.trim()) lines.push(currentLine);
+                currentLine = '';
+            } else {
+                currentLine += char;
+            }
+        }
+        if (currentLine.trim()) lines.push(currentLine);
+
         if (lines.length < 2) return;
         
         const importedAdvice: AdviceData[] = lines.slice(1).map(line => {
-            // Very simple CSV parse for ID and Content, assuming no complex quotes in ID
             const firstComma = line.indexOf(',');
             if (firstComma === -1) return null;
             const nodeId = line.substring(0, firstComma).trim();
-            let content = line.substring(firstComma + 1).trim();
-            // Ensure we remove BOTH surrounding quotes if they exist
-            if (content.startsWith('"') && content.endsWith('"')) {
-                content = content.substring(1, content.length - 1);
-            }
-            // Replace escaped quotes
-            content = content.replace(/""/g, '"');
+            const contentRaw = line.substring(firstComma + 1).trim();
             
-            return { nodeId, content, resolved: false };
+            return { 
+                nodeId, 
+                content: contentRaw, // We don't need to strip quotes here, our parser above handled the state, we just need to ensure the final output is clean if it wrapped
+                resolved: false 
+            };
         }).filter(Boolean) as AdviceData[];
 
-        setAdviceList(importedAdvice);
+        // To handle the content cleanup from the raw split:
+        const cleanAdvice = importedAdvice.map(adv => {
+            let cleaned = adv.content;
+            if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+                cleaned = cleaned.substring(1, cleaned.length - 1);
+            }
+            cleaned = cleaned.replace(/""/g, '"');
+            return { ...adv, content: cleaned };
+        });
+
+        setAdviceList(cleanAdvice);
         showToast('アドバイスを読み込みました');
     };
     reader.readAsText(file);
